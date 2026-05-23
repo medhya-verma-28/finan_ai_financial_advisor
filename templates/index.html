@@ -3,61 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Finan AI - Financial Advisor</title>
+    <title>F₹nan AI - Financial Advisor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prata&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">
-                <span class="logo-icon">₹</span>
-                <h1>Finan <span class="ai-badge">AI</span></h1>
+    <!-- Falling ₹ background -->
+    <div id="rupeeFall" aria-hidden="true"></div>
+
+    <!-- ===== LOGGED-OUT HOME ===== -->
+    <div id="homeScreen">
+        <header class="home-header">
+            <div class="logo-block">
+                <div class="logo-row">
+                    <div class="cash-bundle left-bundle">
+                        <span class="note">💵</span><span class="note">💵</span><span class="note">💵</span>
+                    </div>
+                    <h1 class="logo-text">F₹nan</h1>
+                    <div class="cash-bundle right-bundle">
+                        <span class="note">💵</span><span class="note">💵</span><span class="note">💵</span>
+                    </div>
+                </div>
+                <p class="logo-sub">AI FINANCIAL ADVISOR <span class="for-india">FOR INDIA</span></p>
             </div>
-            <p class="tagline">Your AI-powered financial advisor for the Indian economic landscape</p>
         </header>
 
-        <main>
-            <section class="query-section">
-                <h2>Share Your Financial Situation</h2>
-                <p class="hint">Describe your monthly income, expenses (cost of living, investments, lifestyle spending, crisis/emergency costs), total expenditure, and debt status. The more details you provide, the better the advice.</p>
-                <div class="example-toggle">
-                    <button id="exampleBtn" onclick="loadExample()">Load an Example Query</button>
+        <main class="home-main">
+            <!-- Guest chat section -->
+            <section class="chat-section" id="guestChat">
+                <div class="chat-messages" id="guestMessages">
+                    <div class="msg finan-msg">
+                        <span class="msg-avatar">F₹</span>
+                        <div class="msg-bubble">
+                            Hello! I'm <strong>Finan</strong>, your AI financial advisor built for India. Tell me about your income, expenses and debt — I'll give you personalised advice.<br><br>
+                            <em>Sign in with Google to save your budgets and chat history.</em>
+                        </div>
+                    </div>
                 </div>
-                <textarea id="queryInput" placeholder="e.g. I earn ₹80,000/month as a teacher in Pune. My rent and groceries cost ₹25,000. I invest ₹8,000 monthly in mutual funds. I spend about ₹10,000 on eating out and shopping. I also send ₹7,000 to my parents every month. Total expenditure is ₹50,000. I have no debt. Is my spending balanced?"></textarea>
-                <button id="analyzeBtn" onclick="analyzeQuery()">
-                    <span id="btnText">Get My Financial Advice</span>
-                    <span id="btnLoader" class="hidden">Analyzing...</span>
+                <div class="chat-input-row">
+                    <textarea id="guestInput" placeholder="Describe your financial situation… e.g. I earn ₹80,000/month in Mumbai, rent is ₹22,000…" rows="2"></textarea>
+                    <button id="guestSendBtn" onclick="guestSend()">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Sign-in CTA -->
+            <div class="signin-cta">
+                <div class="divider"><span>or</span></div>
+                <button class="google-btn" onclick="signInGoogle()">
+                    <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+                    Sign in with Google to Save Your Progress
                 </button>
-            </section>
-
-            <div id="errorBox" class="error-box hidden"></div>
-
-            <section id="resultsSection" class="results-section hidden">
-                <div class="results-grid">
-                    <div class="card extracted-card">
-                        <h3>Extracted Financial Info</h3>
-                        <table id="extractedTable"></table>
-                    </div>
-                    <div class="card predictions-card">
-                        <h3>ML Predictions</h3>
-                        <div id="predictionsContent"></div>
-                    </div>
-                    <div class="card budgets-card">
-                        <h3>Suggested Budgets</h3>
-                        <table id="budgetsTable"></table>
-                    </div>
-                </div>
-                <div class="card advice-card">
-                    <h3>Personalized Financial Advice</h3>
-                    <div id="adviceContent"></div>
-                </div>
-            </section>
+            </div>
         </main>
-
-        <footer>
-            <p>Powered by Google Gemini &amp; scikit-learn &bull; Tailored for the Indian economic landscape</p>
-        </footer>
     </div>
+
+    <!-- ===== LOGGED-IN DASHBOARD ===== -->
+    <div id="dashboard" class="hidden">
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <div class="sidebar-logo">F₹nan</div>
+            <button class="sidebar-btn active" id="newChatBtn" onclick="startNewChat()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Chat
+            </button>
+
+            <div class="sidebar-section-label">Recent Chats</div>
+            <div id="recentChatsList" class="sidebar-chats"></div>
+
+            <div class="sidebar-section-label">Saved Budgets</div>
+            <button class="sidebar-btn" onclick="showBudgets()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                My Saved Budgets
+            </button>
+
+            <div class="sidebar-spacer"></div>
+
+            <div class="sidebar-profile">
+                <img id="sidebarAvatar" src="" alt="Profile" class="avatar-img">
+                <div class="profile-info">
+                    <span id="sidebarName" class="profile-name"></span>
+                    <span id="sidebarEmail" class="profile-email"></span>
+                </div>
+            </div>
+            <button class="sidebar-btn signout-btn" onclick="signOutUser()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Sign Out
+            </button>
+        </aside>
+
+        <!-- Main chat area -->
+        <div class="dash-main">
+            <div class="dash-topbar">
+                <button class="hamburger" onclick="toggleSidebar()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                <span class="dash-title">F₹nan AI</span>
+                <img id="topbarAvatar" src="" alt="" class="avatar-img small">
+            </div>
+
+            <!-- Chat messages -->
+            <div class="chat-messages dash-messages" id="dashMessages">
+                <div class="msg finan-msg">
+                    <span class="msg-avatar">F₹</span>
+                    <div class="msg-bubble">
+                        Welcome back! I'm <strong>Finan</strong>, your personal AI financial advisor. Tell me about your finances and I'll provide personalised advice, and save your suggested budgets for future reference.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget panel (hidden by default) -->
+            <div id="budgetPanel" class="budget-panel hidden">
+                <div class="budget-panel-header">
+                    <h3>My Saved Budgets</h3>
+                    <button onclick="closeBudgets()">✕</button>
+                </div>
+                <div id="budgetTableWrap"></div>
+            </div>
+
+            <div class="chat-input-row dash-input">
+                <textarea id="dashInput" placeholder="Ask Finan about your finances…" rows="2"></textarea>
+                <button id="dashSendBtn" onclick="dashSend()">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
+            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+
+        const firebaseConfig = {
+            apiKey: "{{ firebase_api_key }}",
+            authDomain: "{{ firebase_project_id }}.firebaseapp.com",
+            projectId: "{{ firebase_project_id }}",
+            storageBucket: "{{ firebase_project_id }}.firebasestorage.app",
+            appId: "{{ firebase_app_id }}",
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Expose to global scope for button handlers
+        window._fbAuth = auth;
+        window._fbProvider = provider;
+        window._fbSignOut = signOut;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window._currentUser = user;
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('sidebarAvatar').src = user.photoURL || '';
+                document.getElementById('topbarAvatar').src = user.photoURL || '';
+                document.getElementById('sidebarName').textContent = user.displayName || '';
+                document.getElementById('sidebarEmail').textContent = user.email || '';
+                loadRecentChats();
+            } else {
+                window._currentUser = null;
+                document.getElementById('homeScreen').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+            }
+        });
+    </script>
 
     <script src="/static/app.js"></script>
 </body>
