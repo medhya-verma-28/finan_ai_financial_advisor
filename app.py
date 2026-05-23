@@ -20,7 +20,6 @@ print("Loading dataset and training models...")
 
 df = pd.read_csv(DATA_PATH)
 
-# --- Model 1: Financial State Category (SVC) ---
 classes_X1 = ['Monthly Income (INR)', 'Cost of Living Expenditure (INR)',
                'Other Important Investments (INR)', 'Consumerist Expenditure (INR)',
                'Crisis Shock Expenditure (INR)', 'Total Monthly Expenditure (INR)',
@@ -48,7 +47,6 @@ X_train, X_test, y_train, y_test = train_test_split(X, y_transformed, test_size=
 model = SVC(kernel='linear', C=1.0, random_state=42, class_weight='balanced')
 model.fit(X_train, y_train)
 
-# --- Models 1 & 2: Income Sufficiency + Expenditure Worth (SVC) ---
 X2 = df[['Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other Important Investments (INR)',
           'Consumerist Expenditure (INR)', 'Crisis Shock Expenditure (INR)',
           'Total Monthly Expenditure (INR)', 'Debt Status', 'Financial State Category']].copy()
@@ -82,7 +80,6 @@ model2 = SVC(kernel='linear', C=1.0, random_state=42, class_weight='balanced')
 model1.fit(X_train1, y_train1)
 model2.fit(X_train2, y_train2)
 
-# --- Models 3-6: Budget Suggestions (Random Forest Regressor) ---
 df_rf = pd.read_csv(DATA_PATH)
 df_rf['Savings_Margin_Ratio'] = (df_rf['Monthly Income (INR)'] - df_rf['Total Monthly Expenditure (INR)']) / df_rf['Monthly Income (INR)']
 df_rf['Essential_Cost_Ratio'] = df_rf['Cost of Living Expenditure (INR)'] / df_rf['Total Monthly Expenditure (INR)']
@@ -123,7 +120,6 @@ model6.fit(X_train6, y_train6)
 
 print("All models trained successfully!")
 
-# --- Langextract setup ---
 lx_prompt = textwrap.dedent("""
     Extract financial information.
     Identify if following information exists in text and extract info that exists:'Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other Important Investments (INR)', 'Consumerist Expenditure (INR)', 'Crisis Shock Expenditure (INR)', 'Total Monthly Expenditure (INR)', 'Debt Status'.
@@ -144,7 +140,7 @@ lx_examples = [
         ]
     ),
     lx.data.ExampleData(
-        text="Hey, I need some honest financial advice. I am currently working as a software engineer in Bengaluru, and my monthly in-hand salary is ₹1,40,000. Lately, I feel like my money is just vanishing. My fixed overheads are quite high—between my house rent, society maintenance, maid, electricity, and groceries, my core cost of living comes out to exactly ₹45,000 every month. On top of that, I am upskilling myself to transition into a management role, so I am paying a monthly EMI of ₹15,000 for an executive data science certification course from an IIM. I've also been overspending a bit on lifestyle choices; between dining out at pubs, weekend trips, and ordering from Swiggy/Zomato, my discretionary consumerist spending hits around ₹25,000 monthly. To make matters worse, my father had a minor medical emergency back home last month, so I've had to commit a fixed ₹15,000 monthly towards his ongoing healthcare and medicine costs for the foreseeable future. If you calculate it all, my total monthly expenditure has ballooned to ₹1,00,000, leaving me with very little savings. As for my overall debt status, I don't owe anything. Looking at this breakdown, do you think my current level of expenditure is actually worth it, or am I jeopardizing my long-term financial health for short-term comfort?",
+        text="Hey, I need some honest financial advice. I am currently working as a software engineer in Bengaluru, and my monthly in-hand salary is ₹1,40,000. My fixed overheads—rent, maintenance, maid, electricity, groceries—cost ₹45,000 monthly. I pay ₹15,000 for an IIM executive certification. My lifestyle spending is ₹25,000, and ₹15,000 goes to my father's healthcare. Total expenditure is ₹1,00,000. I have no debts. Is my spending balanced?",
         extractions=[
             lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="140000", attributes={}),
             lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="45000", attributes={}),
@@ -164,7 +160,12 @@ lx_classes = ['Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template(
+        'index.html',
+        firebase_api_key=os.environ.get('FIREBASE_API_KEY', ''),
+        firebase_project_id=os.environ.get('FIREBASE_PROJECT_ID', ''),
+        firebase_app_id=os.environ.get('FIREBASE_APP_ID', ''),
+    )
 
 
 @app.route('/analyze', methods=['POST'])
@@ -176,10 +177,9 @@ def analyze():
 
     api_key = os.getenv('GEMINI_API_KEY')
     if not api_key:
-        return jsonify({'error': 'GEMINI_API_KEY is not configured. Please add it in the Secrets panel.'}), 500
+        return jsonify({'error': 'GEMINI_API_KEY is not configured.'}), 500
 
     try:
-        # Step 1: Extract financial info from query
         result = lx.extract(
             text_or_documents=query,
             prompt_description=lx_prompt,
@@ -191,7 +191,6 @@ def analyze():
                         if extraction.extraction_class != 'Debt Status'] + \
                        [result.extractions[-1].extraction_text]
 
-        # Step 2: Predict Financial State Category
         X_validation_df = pd.DataFrame([X_validation], columns=lx_classes)
         num_feats = lx_classes[:-1]
 
@@ -203,7 +202,6 @@ def analyze():
         y_pred_cat = model.predict(X_validation_df)
         financial_state_category = categorical_transformer_y.inverse_transform(y_pred_cat)[0]
 
-        # Step 3: Predict income sufficiency and expenditure worth
         X2_validation = X_validation + [y_pred_cat[0]]
         X2_cols = lx_classes + ['Financial State Category']
         X2_validation_df = pd.DataFrame([X2_validation], columns=X2_cols)
@@ -219,7 +217,6 @@ def analyze():
         current_monthly_income_enough = le1.inverse_transform(y_pred1)[0]
         current_expenditure_worth_it = le2.inverse_transform(y_pred2)[0]
 
-        # Step 4: Predict suggested budgets
         X3_validation = X_validation[:-1]
         X3_validation_df = pd.DataFrame([X3_validation], columns=lx_classes[:-1])
         X3_validation_df['Savings_Margin_Ratio'] = (X3_validation_df['Monthly Income (INR)'] - X3_validation_df['Total Monthly Expenditure (INR)']) / X3_validation_df['Monthly Income (INR)']
@@ -236,7 +233,6 @@ def analyze():
 
         monthly_income = X_validation[0]
 
-        # Step 5: Generate advice via Gemini
         client = Client(api_key=api_key)
         prompt = f"""
 You are Finan, an informative and supportive ai financial advisor.
