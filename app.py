@@ -187,38 +187,72 @@ def analyze():
             model_id="gemini-2.5-flash",
         )
 
-        X_validation = [int(extraction.extraction_text) for extraction in result.extractions
-                        if extraction.extraction_class != 'Debt Status'] + \
-                       [result.extractions[-1].extraction_text]
+        import re as _re
 
-        X_validation_df = pd.DataFrame([X_validation], columns=lx_classes)
-        num_feats = lx_classes[:-1]
+        def clean_int(val):
+            """Strip currency symbols, commas, spaces and convert to int."""
+            cleaned = _re.sub(r'[^\d.]', '', str(val))
+            return int(float(cleaned)) if cleaned else 0
 
-        xt_num = numeric_transformer_X.transform(X_validation_df[num_feats])
-        X_validation_df[num_feats] = xt_num
-        xt_cat = categorical_transformer_X.transform(X_validation_df[['Debt Status']].values.ravel())
-        X_validation_df[['Debt Status']] = xt_cat.reshape(-1, 1)
+        def normalize_debt(val):
+            """Normalise any debt string to the two labels seen in training."""
+            v = str(val).lower().strip()
+            if 'not' in v or 'no debt' in v or v in ('', 'none'):
+                return 'Not in Debt'
+            return 'In Debt'
 
-        y_pred_cat = model.predict(X_validation_df)
+        # Build a dict keyed by extraction class (handles any ordering)
+        extracted_map = {}
+        for ex in result.extractions:
+            extracted_map[ex.extraction_class] = ex.extraction_text
+
+        numeric_keys = lx_classes[:-1]  # 6 financial columns
+        debt_status = normalize_debt(extracted_map.get('Debt Status', 'Not in Debt'))
+
+        # Ordered list: 6 ints + 1 debt string
+        numeric_vals = [clean_int(extracted_map.get(k, 0)) for k in numeric_keys]
+        X_validation = numeric_vals + [debt_status]
+
+        # --- Model 1: Financial State Category ---
+        X_val_df = pd.DataFrame(
+            {col: [numeric_vals[i]] for i, col in enumerate(numeric_keys)}
+        )
+        X_val_df['Debt Status'] = [debt_status]
+        X_val_df[numeric_keys] = X_val_df[numeric_keys].astype(float)
+
+        X_val_df[numeric_keys] = numeric_transformer_X.transform(X_val_df[numeric_keys])
+        X_val_df['Debt Status'] = categorical_transformer_X.transform(
+            X_val_df['Debt Status'].values.ravel()).reshape(-1, 1)
+
+        y_pred_cat = model.predict(X_val_df)
         financial_state_category = categorical_transformer_y.inverse_transform(y_pred_cat)[0]
 
-        X2_validation = X_validation + [y_pred_cat[0]]
+        # --- Models 1b/2: Income sufficiency & Expenditure worth ---
+        # Use string financial_state_category (not the raw int) so the LabelEncoder can encode it
         X2_cols = lx_classes + ['Financial State Category']
-        X2_validation_df = pd.DataFrame([X2_validation], columns=X2_cols)
+        X2_val_df = pd.DataFrame(
+            {col: [numeric_vals[i]] for i, col in enumerate(numeric_keys)}
+        )
+        X2_val_df['Debt Status'] = [debt_status]
+        X2_val_df['Financial State Category'] = [financial_state_category]
+        X2_val_df[numeric_keys] = X2_val_df[numeric_keys].astype(float)
 
-        X2_validation_df[numeric_features_X2] = numeric_transformer_X2.transform(X2_validation_df[numeric_features_X2])
-        X2_validation_df['Debt Status'] = categorical_transformer_X2_debt.transform(
-            X2_validation_df['Debt Status'].values.ravel()).reshape(-1, 1)
-        X2_validation_df['Financial State Category'] = catergorical_transformer_X2_financial_state.transform(
-            X2_validation_df['Financial State Category'].values.ravel()).reshape(-1, 1)
+        X2_val_df[numeric_features_X2] = numeric_transformer_X2.transform(
+            X2_val_df[numeric_features_X2])
+        X2_val_df['Debt Status'] = categorical_transformer_X2_debt.transform(
+            X2_val_df['Debt Status'].values.ravel()).reshape(-1, 1)
+        X2_val_df['Financial State Category'] = catergorical_transformer_X2_financial_state.transform(
+            X2_val_df['Financial State Category'].values.ravel()).reshape(-1, 1)
 
-        y_pred1 = model1.predict(X2_validation_df)
-        y_pred2 = model2.predict(X2_validation_df)
+        y_pred1 = model1.predict(X2_val_df)
+        y_pred2 = model2.predict(X2_val_df)
         current_monthly_income_enough = le1.inverse_transform(y_pred1)[0]
         current_expenditure_worth_it = le2.inverse_transform(y_pred2)[0]
 
-        X3_validation = X_validation[:-1]
-        X3_validation_df = pd.DataFrame([X3_validation], columns=lx_classes[:-1])
+        # --- Models 3-6: Budget suggestions ---
+        X3_validation_df = pd.DataFrame(
+            {col: [float(numeric_vals[i])] for i, col in enumerate(numeric_keys)}
+        )
         X3_validation_df['Savings_Margin_Ratio'] = (X3_validation_df['Monthly Income (INR)'] - X3_validation_df['Total Monthly Expenditure (INR)']) / X3_validation_df['Monthly Income (INR)']
         X3_validation_df['Essential_Cost_Ratio'] = X3_validation_df['Cost of Living Expenditure (INR)'] / X3_validation_df['Total Monthly Expenditure (INR)']
         X3_validation_df['Current_Investment_Allocation_Rate'] = X3_validation_df['Other Important Investments (INR)'] / X3_validation_df['Monthly Income (INR)']
