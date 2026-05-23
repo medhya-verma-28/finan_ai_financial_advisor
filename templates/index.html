@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finan AI - Financial Advisor</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <span class="logo-icon">₹</span>
+                <h1>Finan <span class="ai-badge">AI</span></h1>
+            </div>
+            <p class="tagline">Your AI-powered financial advisor for the Indian economic landscape</p>
+        </header>
+
+        <main>
+            <section class="query-section">
+                <h2>Share Your Financial Situation</h2>
+                <p class="hint">Describe your monthly income, expenses (cost of living, investments, lifestyle spending, crisis/emergency costs), total expenditure, and debt status. The more details you provide, the better the advice.</p>
+                <div class="example-toggle">
+                    <button id="exampleBtn" onclick="loadExample()">Load an Example Query</button>
+                </div>
+                <textarea id="queryInput" placeholder="e.g. I earn ₹80,000/month as a teacher in Pune. My rent and groceries cost ₹25,000. I invest ₹8,000 monthly in mutual funds. I spend about ₹10,000 on eating out and shopping. I also send ₹7,000 to my parents every month. Total expenditure is ₹50,000. I have no debt. Is my spending balanced?"></textarea>
+                <button id="analyzeBtn" onclick="analyzeQuery()">
+                    <span id="btnText">Get My Financial Advice</span>
+                    <span id="btnLoader" class="hidden">Analyzing...</span>
+                </button>
+            </section>
+
+            <div id="errorBox" class="error-box hidden"></div>
+
+            <section id="resultsSection" class="results-section hidden">
+                <div class="results-grid">
+                    <div class="card extracted-card">
+                        <h3>Extracted Financial Info</h3>
+                        <table id="extractedTable"></table>
+                    </div>
+                    <div class="card predictions-card">
+                        <h3>ML Predictions</h3>
+                        <div id="predictionsContent"></div>
+                    </div>
+                    <div class="card budgets-card">
+                        <h3>Suggested Budgets</h3>
+                        <table id="budgetsTable"></table>
+                    </div>
+                </div>
+                <div class="card advice-card">
+                    <h3>Personalized Financial Advice</h3>
+                    <div id="adviceContent"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Powered by Google Gemini &amp; scikit-learn &bull; Tailored for the Indian economic landscape</p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
