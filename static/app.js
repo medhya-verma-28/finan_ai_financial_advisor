@@ -284,8 +284,31 @@ function saveRecentChat(query, responseData) {
     const key = storageKey(); if (!key) return;
     const chats = JSON.parse(localStorage.getItem(key) || '[]');
     const snippet = query.substring(0, 55) + (query.length > 55 ? '…' : '');
-    chats.unshift({ text: snippet, full: query, ts: Date.now(), response: responseData || null });
-    localStorage.setItem(key, JSON.stringify(chats.slice(0, 20)));
+
+    // Store a lightweight copy — trim advice to 4000 chars to avoid quota issues
+    let storedResponse = null;
+    if (responseData) {
+        storedResponse = {
+            extracted: responseData.extracted,
+            predictions: responseData.predictions,
+            budgets: responseData.budgets,
+            advice: (responseData.advice || '').substring(0, 4000)
+        };
+    }
+
+    chats.unshift({ text: snippet, full: query, ts: Date.now(), response: storedResponse });
+
+    // Try saving up to 20 chats; if quota exceeded, drop oldest until it fits
+    const toSave = chats.slice(0, 20);
+    let saved = false;
+    while (toSave.length > 0 && !saved) {
+        try {
+            localStorage.setItem(key, JSON.stringify(toSave));
+            saved = true;
+        } catch (e) {
+            toSave.pop(); // drop oldest chat and retry
+        }
+    }
     loadRecentChats();
 }
 
@@ -321,27 +344,30 @@ window.clearAllChats = function () {
     loadRecentChats();
 };
 
-window.loadChat = function (i) {
+window.loadChat = async function (i) {
     const key = storageKey(); if (!key) return;
     const chats = JSON.parse(localStorage.getItem(key) || '[]');
     const chat = chats[i];
     if (!chat) return;
 
     closeBudgets();
+    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+
     const msgs = document.getElementById('dashMessages');
     msgs.innerHTML = '';
 
-    if (chat.full) appendMsg('dashMessages', 'user', chat.full);
-    else appendMsg('dashMessages', 'user', chat.text);
+    const query = chat.full || chat.text;
+    appendMsg('dashMessages', 'user', query);
 
     if (chat.response) {
+        // Stored response exists — render it directly
         const node = buildResultNode(chat.response, true);
         appendMsg('dashMessages', 'finan', node);
     } else {
-        appendMsg('dashMessages', 'finan', '<em style="color:var(--text-dim)">Response data not available — ask Finan again to get fresh advice.</em>');
+        // No stored response (old chat) — re-fetch advice automatically
+        const sendBtn = document.getElementById('dashSendBtn');
+        await callAnalyze(query, 'dashMessages', sendBtn);
     }
-
-    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 };
 
 /* ===== SAVE BUDGET ===== */
