@@ -47,15 +47,14 @@ let savedBudgets = [];  // [{date, extracted, budgets}]
 
 /* ===== FIREBASE AUTH ACTIONS ===== */
 window.signInGoogle = async function () {
-    if (!window._fbAuth) return alert('Firebase not initialised. Check your Firebase credentials in Secrets.');
+    if (!window._fbAuth || !window._fbProvider) return;
     try {
-        await window._fbAuth.signInWithPopup
-            ? window._fbAuth.signInWithPopup(window._fbProvider)
-            : alert('Auth not ready');
         const { signInWithPopup } = await import('https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js');
         await signInWithPopup(window._fbAuth, window._fbProvider);
     } catch (e) {
-        console.error(e);
+        if (e.code && e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request') {
+            console.error('Sign-in error:', e);
+        }
     }
 };
 
@@ -294,9 +293,32 @@ window.loadRecentChats = function () {
     const key = storageKey(); if (!key) return;
     const chats = JSON.parse(localStorage.getItem(key) || '[]');
     const list = document.getElementById('recentChatsList');
-    list.innerHTML = chats.length === 0
-        ? '<div style="font-size:0.78rem;color:var(--text-dim);padding:0.4rem 0.8rem;">No recent chats</div>'
-        : chats.map((c, i) => `<div class="chat-history-item" onclick="loadChat(${i})">💬 ${c.text}</div>`).join('');
+    if (chats.length === 0) {
+        list.innerHTML = '<div style="font-size:0.78rem;color:var(--text-dim);padding:0.4rem 0.8rem;">No recent chats</div>';
+        return;
+    }
+    list.innerHTML = chats.map((c, i) => `
+        <div class="chat-history-item" onclick="loadChat(${i})">
+            <span style="flex-shrink:0">💬</span>
+            <span class="chat-item-label">${c.text}</span>
+            <button class="chat-item-del" onclick="deleteRecentChat(${i}, event)" title="Delete">✕</button>
+        </div>`).join('');
+};
+
+window.deleteRecentChat = function (i, e) {
+    e.stopPropagation();
+    const key = storageKey(); if (!key) return;
+    const chats = JSON.parse(localStorage.getItem(key) || '[]');
+    chats.splice(i, 1);
+    localStorage.setItem(key, JSON.stringify(chats));
+    loadRecentChats();
+};
+
+window.clearAllChats = function () {
+    const key = storageKey(); if (!key) return;
+    if (!confirm('Delete all recent chats? This cannot be undone.')) return;
+    localStorage.removeItem(key);
+    loadRecentChats();
 };
 
 window.loadChat = function (i) {
@@ -342,9 +364,7 @@ window.saveBudget = function (data, btn) {
 };
 
 /* ===== SHOW BUDGETS PANEL ===== */
-window.showBudgets = function () {
-    const panel = document.getElementById('budgetPanel');
-    panel.classList.remove('hidden');
+function renderBudgetTable() {
     const key = budgetKey();
     const budgets = key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
     const wrap = document.getElementById('budgetTableWrap');
@@ -357,9 +377,9 @@ window.showBudgets = function () {
     wrap.innerHTML = `<table class="budget-table">
         <thead><tr>
             <th>Date</th><th>Monthly Income</th><th>Financial State</th>
-            <th>Cost of Living</th><th>Investments</th><th>Lifestyle</th><th>Emergency</th>
+            <th>Cost of Living</th><th>Investments</th><th>Lifestyle</th><th>Emergency</th><th></th>
         </tr></thead>
-        <tbody>${budgets.map(b => `<tr>
+        <tbody>${budgets.map((b, i) => `<tr>
             <td>${b.date}</td>
             <td class="amt">${fc(b.income)}</td>
             <td>${b.state}</td>
@@ -367,10 +387,45 @@ window.showBudgets = function () {
             <td class="amt">${fc(b.inv)}</td>
             <td class="amt">${fc(b.con)}</td>
             <td class="amt">${fc(b.crisis)}</td>
+            <td><button class="budget-del-btn" onclick="deleteBudget(${i})" title="Delete this entry">✕</button></td>
         </tr>`).join('')}</tbody>
     </table>`;
+}
 
+window.showBudgets = function () {
+    document.getElementById('budgetPanel').classList.remove('hidden');
+    renderBudgetTable();
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
+};
+
+window.deleteBudget = function (i) {
+    const key = budgetKey(); if (!key) return;
+    const budgets = JSON.parse(localStorage.getItem(key) || '[]');
+    budgets.splice(i, 1);
+    localStorage.setItem(key, JSON.stringify(budgets));
+    renderBudgetTable();
+};
+
+window.clearAllBudgets = function () {
+    const key = budgetKey(); if (!key) return;
+    if (!confirm('Delete all saved budgets? This cannot be undone.')) return;
+    localStorage.removeItem(key);
+    renderBudgetTable();
+};
+
+window.exportBudgetsCSV = function () {
+    const key = budgetKey();
+    const budgets = key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
+    if (budgets.length === 0) return alert('No budgets to export.');
+    const header = 'Date,Monthly Income,Financial State,Cost of Living,Investments,Lifestyle,Emergency\n';
+    const rows = budgets.map(b =>
+        `${b.date},${b.income},${b.state},${b.col},${b.inv},${b.con},${b.crisis}`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'finan_budgets.csv'; a.click();
+    URL.revokeObjectURL(url);
 };
 
 window.closeBudgets = function () {
