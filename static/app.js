@@ -76,9 +76,18 @@ function appendMsg(containerId, role, content) {
     const wrap = document.createElement('div');
     wrap.className = 'msg ' + (role === 'user' ? 'user-msg' : 'finan-msg');
 
-    const avatar = document.createElement('span');
-    avatar.className = 'msg-avatar';
-    avatar.textContent = role === 'user' ? '👤' : 'F₹';
+    let avatar;
+    if (role === 'user' && window._currentUser && window._currentUser.photoURL) {
+        avatar = document.createElement('img');
+        avatar.src = window._currentUser.photoURL;
+        avatar.alt = window._currentUser.displayName || 'You';
+        avatar.className = 'msg-avatar avatar-img';
+        avatar.referrerPolicy = 'no-referrer';
+    } else {
+        avatar = document.createElement('span');
+        avatar.className = 'msg-avatar';
+        avatar.textContent = role === 'user' ? '👤' : 'F₹';
+    }
 
     const bubble = document.createElement('div');
     bubble.className = 'msg-bubble';
