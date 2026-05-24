@@ -208,10 +208,9 @@ async function callAnalyze(query, messagesId, sendBtn) {
         const node = buildResultNode(data, messagesId === 'dashMessages');
         const bubble = appendMsg(messagesId, 'finan', node);
 
-        // Store for logged-in chat history
         if (messagesId === 'dashMessages') {
             chatHistory.push({ role: 'finan', data });
-            saveRecentChat(query);
+            saveRecentChat(query, data);
         }
 
     } catch (e) {
@@ -221,6 +220,15 @@ async function callAnalyze(query, messagesId, sendBtn) {
         sendBtn.disabled = false;
     }
 }
+
+/* ===== FILL EXAMPLE PROMPT ===== */
+window.fillExample = function () {
+    const inp = document.getElementById('guestInput');
+    inp.value = EXAMPLE_QUERY;
+    inp.focus();
+    inp.style.height = 'auto';
+    inp.style.height = inp.scrollHeight + 'px';
+};
 
 /* ===== GUEST SEND ===== */
 window.guestSend = async function () {
@@ -273,11 +281,11 @@ function budgetKey() {
     return window._currentUser ? `finan_budgets_${window._currentUser.uid}` : null;
 }
 
-function saveRecentChat(query) {
+function saveRecentChat(query, responseData) {
     const key = storageKey(); if (!key) return;
     const chats = JSON.parse(localStorage.getItem(key) || '[]');
     const snippet = query.substring(0, 55) + (query.length > 55 ? '…' : '');
-    chats.unshift({ text: snippet, ts: Date.now() });
+    chats.unshift({ text: snippet, full: query, ts: Date.now(), response: responseData || null });
     localStorage.setItem(key, JSON.stringify(chats.slice(0, 20)));
     loadRecentChats();
 }
@@ -292,6 +300,25 @@ window.loadRecentChats = function () {
 };
 
 window.loadChat = function (i) {
+    const key = storageKey(); if (!key) return;
+    const chats = JSON.parse(localStorage.getItem(key) || '[]');
+    const chat = chats[i];
+    if (!chat) return;
+
+    closeBudgets();
+    const msgs = document.getElementById('dashMessages');
+    msgs.innerHTML = '';
+
+    if (chat.full) appendMsg('dashMessages', 'user', chat.full);
+    else appendMsg('dashMessages', 'user', chat.text);
+
+    if (chat.response) {
+        const node = buildResultNode(chat.response, true);
+        appendMsg('dashMessages', 'finan', node);
+    } else {
+        appendMsg('dashMessages', 'finan', '<em style="color:var(--text-dim)">Response data not available — ask Finan again to get fresh advice.</em>');
+    }
+
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 };
 
