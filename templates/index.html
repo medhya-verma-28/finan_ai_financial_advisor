@@ -159,6 +159,8 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
             from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, writeBatch }
+            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
         const firebaseConfig = {
             apiKey: "{{ firebase_api_key }}",
@@ -171,11 +173,21 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
+        const db = getFirestore(app);
 
         // Expose to global scope for button handlers
         window._fbAuth = auth;
         window._fbProvider = provider;
         window._fbSignOut = signOut;
+        window._db = db;
+        window._fsCollection = collection;
+        window._fsAddDoc = addDoc;
+        window._fsGetDocs = getDocs;
+        window._fsDeleteDoc = deleteDoc;
+        window._fsDoc = doc;
+        window._fsQuery = query;
+        window._fsOrderBy = orderBy;
+        window._fsWriteBatch = writeBatch;
 
         onAuthStateChanged(auth, (user) => {
             const signInBtn = document.getElementById('homeSignInBtn');

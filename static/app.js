@@ -281,55 +281,49 @@ window.startNewChat = function () {
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 };
 
-/* ===== LOCAL STORAGE FOR RECENT CHATS ===== */
-function storageKey() {
-    return window._currentUser ? `finan_chats_${window._currentUser.uid}` : null;
+/* ===== FIRESTORE HELPERS ===== */
+let _recentChats = [];
+let _savedBudgets = [];
+
+function chatsRef() {
+    if (!window._currentUser || !window._db) return null;
+    return window._fsCollection(window._db, 'users', window._currentUser.uid, 'chats');
 }
-function budgetKey() {
-    return window._currentUser ? `finan_budgets_${window._currentUser.uid}` : null;
+function budgetsRef() {
+    if (!window._currentUser || !window._db) return null;
+    return window._fsCollection(window._db, 'users', window._currentUser.uid, 'budgets');
 }
 
-function saveRecentChat(query, responseData) {
-    const key = storageKey(); if (!key) return;
-    const chats = JSON.parse(localStorage.getItem(key) || '[]');
+async function saveRecentChat(query, responseData) {
+    const ref = chatsRef(); if (!ref) return;
     const snippet = query.substring(0, 55) + (query.length > 55 ? '…' : '');
-
-    // Store a lightweight copy — trim advice to 4000 chars to avoid quota issues
-    let storedResponse = null;
-    if (responseData) {
-        storedResponse = {
-            extracted: responseData.extracted,
-            predictions: responseData.predictions,
-            budgets: responseData.budgets,
-            advice: (responseData.advice || '').substring(0, 4000)
-        };
-    }
-
-    chats.unshift({ text: snippet, full: query, ts: Date.now(), response: storedResponse });
-
-    // Try saving up to 20 chats; if quota exceeded, drop oldest until it fits
-    const toSave = chats.slice(0, 20);
-    let saved = false;
-    while (toSave.length > 0 && !saved) {
-        try {
-            localStorage.setItem(key, JSON.stringify(toSave));
-            saved = true;
-        } catch (e) {
-            toSave.pop(); // drop oldest chat and retry
-        }
-    }
-    loadRecentChats();
+    const storedResponse = responseData ? {
+        extracted: responseData.extracted,
+        predictions: responseData.predictions,
+        budgets: responseData.budgets,
+        advice: (responseData.advice || '').substring(0, 4000)
+    } : null;
+    try {
+        await window._fsAddDoc(ref, { text: snippet, full: query, ts: Date.now(), response: storedResponse });
+        await loadRecentChats();
+    } catch (e) { console.error('saveRecentChat:', e); }
 }
 
-window.loadRecentChats = function () {
-    const key = storageKey(); if (!key) return;
-    const chats = JSON.parse(localStorage.getItem(key) || '[]');
+window.loadRecentChats = async function () {
+    const ref = chatsRef(); if (!ref) return;
     const list = document.getElementById('recentChatsList');
-    if (chats.length === 0) {
+    list.innerHTML = '<div style="font-size:0.78rem;color:var(--text-dim);padding:0.4rem 0.8rem;">Loading…</div>';
+    try {
+        const q = window._fsQuery(ref, window._fsOrderBy('ts', 'desc'));
+        const snap = await window._fsGetDocs(q);
+        _recentChats = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { console.error('loadRecentChats:', e); _recentChats = []; }
+
+    if (_recentChats.length === 0) {
         list.innerHTML = '<div style="font-size:0.78rem;color:var(--text-dim);padding:0.4rem 0.8rem;">No recent chats</div>';
         return;
     }
-    list.innerHTML = chats.map((c, i) => `
+    list.innerHTML = _recentChats.map((c, i) => `
         <div class="chat-history-item" onclick="loadChat(${i})">
             <span style="flex-shrink:0">💬</span>
             <span class="chat-item-label">${c.text}</span>
@@ -337,84 +331,94 @@ window.loadRecentChats = function () {
         </div>`).join('');
 };
 
-window.deleteRecentChat = function (i, e) {
+window.deleteRecentChat = async function (i, e) {
     e.stopPropagation();
-    const key = storageKey(); if (!key) return;
-    const chats = JSON.parse(localStorage.getItem(key) || '[]');
-    chats.splice(i, 1);
-    localStorage.setItem(key, JSON.stringify(chats));
-    loadRecentChats();
+    const chat = _recentChats[i];
+    if (!chat || !window._db || !window._currentUser) return;
+    try {
+        await window._fsDeleteDoc(window._fsDoc(window._db, 'users', window._currentUser.uid, 'chats', chat.id));
+        await loadRecentChats();
+    } catch (e) { console.error('deleteRecentChat:', e); }
 };
 
-window.clearAllChats = function () {
-    const key = storageKey(); if (!key) return;
+window.clearAllChats = async function () {
     if (!confirm('Delete all recent chats? This cannot be undone.')) return;
-    localStorage.removeItem(key);
-    loadRecentChats();
+    const ref = chatsRef(); if (!ref) return;
+    try {
+        const snap = await window._fsGetDocs(ref);
+        const batch = window._fsWriteBatch(window._db);
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        await loadRecentChats();
+    } catch (e) { console.error('clearAllChats:', e); }
 };
 
 window.loadChat = async function (i) {
-    const key = storageKey(); if (!key) return;
-    const chats = JSON.parse(localStorage.getItem(key) || '[]');
-    const chat = chats[i];
-    if (!chat) return;
-
+    const chat = _recentChats[i]; if (!chat) return;
     closeBudgets();
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 
     const msgs = document.getElementById('dashMessages');
     msgs.innerHTML = '';
-
     const query = chat.full || chat.text;
     appendMsg('dashMessages', 'user', query);
 
     if (chat.response) {
-        // Stored response exists — render it directly
         const node = buildResultNode(chat.response, true);
         appendMsg('dashMessages', 'finan', node);
     } else {
-        // No stored response (old chat) — re-fetch advice automatically
-        const sendBtn = document.getElementById('dashSendBtn');
-        await callAnalyze(query, 'dashMessages', sendBtn);
+        await callAnalyze(query, 'dashMessages', document.getElementById('dashSendBtn'));
     }
 };
 
 /* ===== SAVE BUDGET ===== */
-window.saveBudget = function (data, btn) {
-    const key = budgetKey(); if (!key) return;
-    const budgets = JSON.parse(localStorage.getItem(key) || '[]');
-    budgets.unshift({
-        date: new Date().toLocaleDateString('en-IN'),
-        income: data.extracted.monthly_income,
-        state: data.predictions.financial_state,
-        col: data.budgets.cost_of_living,
-        inv: data.budgets.investments,
-        con: data.budgets.consumerist,
-        crisis: data.budgets.crisis_shock,
-    });
-    localStorage.setItem(key, JSON.stringify(budgets.slice(0, 50)));
-    btn.textContent = '✓ Saved!';
-    btn.disabled = true;
-    setTimeout(() => { btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Budget`; btn.disabled = false; }, 2000);
+window.saveBudget = async function (data, btn) {
+    const ref = budgetsRef(); if (!ref) return;
+    try {
+        await window._fsAddDoc(ref, {
+            date: new Date().toLocaleDateString('en-IN'),
+            income: data.extracted.monthly_income,
+            state: data.predictions.financial_state,
+            col: data.budgets.cost_of_living,
+            inv: data.budgets.investments,
+            con: data.budgets.consumerist,
+            crisis: data.budgets.crisis_shock,
+            ts: Date.now()
+        });
+        btn.textContent = '✓ Saved!';
+        btn.disabled = true;
+        setTimeout(() => {
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Budget`;
+            btn.disabled = false;
+        }, 2000);
+    } catch (e) { console.error('saveBudget:', e); }
 };
 
 /* ===== SHOW BUDGETS PANEL ===== */
-function renderBudgetTable() {
-    const key = budgetKey();
-    const budgets = key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
+async function renderBudgetTable() {
+    const ref = budgetsRef();
     const wrap = document.getElementById('budgetTableWrap');
+    wrap.innerHTML = '<p class="no-budgets">Loading…</p>';
+    if (!ref) {
+        wrap.innerHTML = '<p class="no-budgets">Sign in to view saved budgets.</p>';
+        return;
+    }
+    try {
+        const q = window._fsQuery(ref, window._fsOrderBy('ts', 'desc'));
+        const snap = await window._fsGetDocs(q);
+        _savedBudgets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { console.error('renderBudgetTable:', e); _savedBudgets = []; }
 
-    if (budgets.length === 0) {
+    if (_savedBudgets.length === 0) {
         wrap.innerHTML = '<p class="no-budgets">No saved budgets yet. Ask Finan for advice and save your suggested budget.</p>';
         return;
     }
-
     wrap.innerHTML = `<table class="budget-table">
         <thead><tr>
             <th>Date</th><th>Monthly Income</th><th>Financial State</th>
             <th>Cost of Living</th><th>Investments</th><th>Lifestyle</th><th>Emergency</th><th></th>
         </tr></thead>
-        <tbody>${budgets.map((b, i) => `<tr>
+        <tbody>${_savedBudgets.map((b, i) => `<tr>
             <td>${b.date}</td>
             <td class="amt">${fc(b.income)}</td>
             <td>${b.state}</td>
@@ -427,33 +431,37 @@ function renderBudgetTable() {
     </table>`;
 }
 
-window.showBudgets = function () {
+window.showBudgets = async function () {
     document.getElementById('budgetPanel').classList.remove('hidden');
-    renderBudgetTable();
+    await renderBudgetTable();
     if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('open');
 };
 
-window.deleteBudget = function (i) {
-    const key = budgetKey(); if (!key) return;
-    const budgets = JSON.parse(localStorage.getItem(key) || '[]');
-    budgets.splice(i, 1);
-    localStorage.setItem(key, JSON.stringify(budgets));
-    renderBudgetTable();
+window.deleteBudget = async function (i) {
+    const b = _savedBudgets[i];
+    if (!b || !window._db || !window._currentUser) return;
+    try {
+        await window._fsDeleteDoc(window._fsDoc(window._db, 'users', window._currentUser.uid, 'budgets', b.id));
+        await renderBudgetTable();
+    } catch (e) { console.error('deleteBudget:', e); }
 };
 
-window.clearAllBudgets = function () {
-    const key = budgetKey(); if (!key) return;
+window.clearAllBudgets = async function () {
     if (!confirm('Delete all saved budgets? This cannot be undone.')) return;
-    localStorage.removeItem(key);
-    renderBudgetTable();
+    const ref = budgetsRef(); if (!ref) return;
+    try {
+        const snap = await window._fsGetDocs(ref);
+        const batch = window._fsWriteBatch(window._db);
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        await renderBudgetTable();
+    } catch (e) { console.error('clearAllBudgets:', e); }
 };
 
 window.exportBudgetsCSV = function () {
-    const key = budgetKey();
-    const budgets = key ? JSON.parse(localStorage.getItem(key) || '[]') : [];
-    if (budgets.length === 0) return alert('No budgets to export.');
+    if (_savedBudgets.length === 0) return alert('No budgets to export.');
     const header = 'Date,Monthly Income,Financial State,Cost of Living,Investments,Lifestyle,Emergency\n';
-    const rows = budgets.map(b =>
+    const rows = _savedBudgets.map(b =>
         `${b.date},${b.income},${b.state},${b.col},${b.inv},${b.con},${b.crisis}`
     ).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
