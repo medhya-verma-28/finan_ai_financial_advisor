@@ -42,8 +42,7 @@ function renderMarkdown(text) {
 }
 
 /* In-memory store for guest/logged-in sessions */
-let chatHistory = [];   // [{role:'user'|'finan', text, data}]
-let savedBudgets = [];  // [{date, extracted, budgets}]
+let chatHistory = [];
 
 /* ===== FIREBASE AUTH ACTIONS ===== */
 window.signInGoogle = async function () {
@@ -62,8 +61,10 @@ window.signOutUser = async function () {
     if (!window._fbAuth) return;
     await window._fbSignOut(window._fbAuth);
     chatHistory = [];
-    savedBudgets = [];
+    _recentChats = [];
+    _savedBudgets = [];
     document.getElementById('dashMessages').innerHTML = '';
+    document.getElementById('recentChatsList').innerHTML = '';
 };
 
 window.toggleSidebar = function () {
