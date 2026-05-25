@@ -121,9 +121,16 @@ model6.fit(X_train6, y_train6)
 print("All models trained successfully!")
 
 lx_prompt = textwrap.dedent("""
-    Extract financial information.
-    Identify if following information exists in text and extract info that exists:'Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other Important Investments (INR)', 'Consumerist Expenditure (INR)', 'Crisis Shock Expenditure (INR)', 'Total Monthly Expenditure (INR)', 'Debt Status'.
-    Use exact text for extractions.
+    Extract financial information from the text.
+    Identify if the following fields exist and extract them: 'Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other Important Investments (INR)', 'Consumerist Expenditure (INR)', 'Crisis Shock Expenditure (INR)', 'Total Monthly Expenditure (INR)', 'Debt Status'.
+    For all monetary amounts, convert to plain integers in INR regardless of the format used:
+    - Indian shorthand: 1L or 1 lakh or 1 lac = 100000, 2.5L or 2.5 lakh = 250000, 1K or 1k or 1 thousand = 1000, 25K = 25000, 1 crore or 1cr = 10000000
+    - Written words: one lakh = 100000, fifty thousand = 50000, two crore = 20000000
+    - Symbols/prefixes: ₹, Rs, INR followed by a number — strip the symbol and keep the integer
+    - Comma-formatted: 1,40,000 = 140000, 1,00,000 = 100000
+    - Decimal notation: 1.5 lakh = 150000, 2.5 crore = 25000000
+    Always output the extracted_text as a plain integer (no symbols, no words, no commas).
+    For Debt Status extract 'In Debt' or 'Not in Debt'.
 """)
 
 lx_examples = [
@@ -150,7 +157,66 @@ lx_examples = [
             lx.data.Extraction(extraction_class="Total Monthly Expenditure (INR)", extraction_text="100000", attributes={}),
             lx.data.Extraction(extraction_class="Debt Status", extraction_text="Not in Debt", attributes={})
         ]
-    )
+    ),
+    lx.data.ExampleData(
+        text="Monthly income 2 lakh, cost of living 60 thousand, important investments of 40 thousand, consumerism of 25 K and crisis expenses of 30 K. No loans pending. Is my current monthly income enough and is spending worth it?",
+        extractions=[
+            lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="200000", attributes={}),
+            lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="60000", attributes={}),
+            lx.data.Extraction(extraction_class="Other Important Investments (INR)", extraction_text="40000", attributes={}),
+            lx.data.Extraction(extraction_class="Consumerist Expenditure (INR)", extraction_text="25000", attributes={}),
+            lx.data.Extraction(extraction_class="Crisis Shock Expenditure (INR)", extraction_text="30000", attributes={}),
+            lx.data.Extraction(extraction_class="Total Monthly Expenditure (INR)", extraction_text="155000", attributes={}),
+            lx.data.Extraction(extraction_class="Debt Status", extraction_text="Not in Debt", attributes={})
+        ]
+    ),
+    lx.data.ExampleData(
+        text="My salary is 2.5L per month. Rent and groceries cost me about 80K. I invest 20 thousand in mutual funds. I spend around 15K on entertainment. Emergency fund contribution is 10K monthly. Total spending is 1.25 lakh. I have a car loan of 5 lakh outstanding.",
+        extractions=[
+            lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="250000", attributes={}),
+            lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="80000", attributes={}),
+            lx.data.Extraction(extraction_class="Other Important Investments (INR)", extraction_text="20000", attributes={}),
+            lx.data.Extraction(extraction_class="Consumerist Expenditure (INR)", extraction_text="15000", attributes={}),
+            lx.data.Extraction(extraction_class="Crisis Shock Expenditure (INR)", extraction_text="10000", attributes={}),
+            lx.data.Extraction(extraction_class="Total Monthly Expenditure (INR)", extraction_text="125000", attributes={}),
+            lx.data.Extraction(extraction_class="Debt Status", extraction_text="In Debt", attributes={})
+        ]
+    ),
+    lx.data.ExampleData(
+        text="I earn Rs 75000 a month. Living costs are fifty thousand. No investments currently. I spend five thousand on leisure. I keep ten thousand aside for emergencies. Total outgo is sixty-five thousand. I have no loans.",
+        extractions=[
+            lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="75000", attributes={}),
+            lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="50000", attributes={}),
+            lx.data.Extraction(extraction_class="Other Important Investments (INR)", extraction_text="0", attributes={}),
+            lx.data.Extraction(extraction_class="Consumerist Expenditure (INR)", extraction_text="5000", attributes={}),
+            lx.data.Extraction(extraction_class="Crisis Shock Expenditure (INR)", extraction_text="10000", attributes={}),
+            lx.data.Extraction(extraction_class="Total Monthly Expenditure (INR)", extraction_text="65000", attributes={}),
+            lx.data.Extraction(extraction_class="Debt Status", extraction_text="Not in Debt", attributes={})
+        ]
+    ),
+    lx.data.ExampleData(
+        text="Income: 1.2 crore per annum so about 10 lakh a month. House EMI is 2.5L. Kids' school and groceries together are 1L. I put 1.5 lakh in stocks and SIPs. Dining and travel cost me 50K. I keep 25K for medical emergencies. No outstanding debts. Am I saving enough?",
+        extractions=[
+            lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="1000000", attributes={}),
+            lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="100000", attributes={}),
+            lx.data.Extraction(extraction_class="Other Important Investments (INR)", extraction_text="150000", attributes={}),
+            lx.data.Extraction(extraction_class="Consumerist Expenditure (INR)", extraction_text="50000", attributes={}),
+            lx.data.Extraction(extraction_class="Crisis Shock Expenditure (INR)", extraction_text="25000", attributes={}),
+            lx.data.Extraction(extraction_class="Debt Status", extraction_text="Not in Debt", attributes={})
+        ]
+    ),
+    lx.data.ExampleData(
+        text="Monthly income 200000, cost of living 60000, important investments of 40000, consumerism of 25000 and crisis expenses of 30000. No loans pending. Is my current monthly income enough and is spending worth it?",
+        extractions=[
+            lx.data.Extraction(extraction_class="Monthly Income (INR)", extraction_text="200000", attributes={}),
+            lx.data.Extraction(extraction_class="Cost of Living Expenditure (INR)", extraction_text="60000", attributes={}),
+            lx.data.Extraction(extraction_class="Other Important Investments (INR)", extraction_text="40000", attributes={}),
+            lx.data.Extraction(extraction_class="Consumerist Expenditure (INR)", extraction_text="25000", attributes={}),
+            lx.data.Extraction(extraction_class="Crisis Shock Expenditure (INR)", extraction_text="30000", attributes={}),
+            lx.data.Extraction(extraction_class="Total Monthly Expenditure (INR)", extraction_text="155000", attributes={}),
+            lx.data.Extraction(extraction_class="Debt Status", extraction_text="Not in Debt", attributes={})
+        ]
+    ),
 ]
 
 lx_classes = ['Monthly Income (INR)', 'Cost of Living Expenditure (INR)', 'Other Important Investments (INR)',
@@ -190,8 +256,30 @@ def analyze():
         import re as _re
 
         def clean_int(val):
-            """Strip currency symbols, commas, spaces and convert to int."""
-            cleaned = _re.sub(r'[^\d.]', '', str(val))
+            """Parse any Indian currency format and return a plain integer in INR."""
+            s = str(val).lower().strip()
+            # Remove currency prefixes/symbols
+            s = _re.sub(r'(₹|rs\.?|inr)\s*', '', s).strip()
+            # Remove commas (Indian formatting: 1,40,000)
+            s = s.replace(',', '')
+            # Crore
+            m = _re.match(r'^([\d.]+)\s*(?:crore|crores|cr)\b', s)
+            if m:
+                return int(float(m.group(1)) * 10_000_000)
+            # Lakh / lac / L
+            m = _re.match(r'^([\d.]+)\s*(?:lakh|lakhs|lac|lacs|l)\b', s)
+            if m:
+                return int(float(m.group(1)) * 100_000)
+            # Thousand / k
+            m = _re.match(r'^([\d.]+)\s*(?:thousand|thousands|k)\b', s)
+            if m:
+                return int(float(m.group(1)) * 1_000)
+            # Hundred
+            m = _re.match(r'^([\d.]+)\s*(?:hundred|hundreds)\b', s)
+            if m:
+                return int(float(m.group(1)) * 100)
+            # Plain number (possibly decimal)
+            cleaned = _re.sub(r'[^\d.]', '', s)
             return int(float(cleaned)) if cleaned else 0
 
         def normalize_debt(val):
@@ -253,10 +341,28 @@ def analyze():
         X3_validation_df = pd.DataFrame(
             {col: [float(numeric_vals[i])] for i, col in enumerate(numeric_keys)}
         )
-        X3_validation_df['Savings_Margin_Ratio'] = (X3_validation_df['Monthly Income (INR)'] - X3_validation_df['Total Monthly Expenditure (INR)']) / X3_validation_df['Monthly Income (INR)']
-        X3_validation_df['Essential_Cost_Ratio'] = X3_validation_df['Cost of Living Expenditure (INR)'] / X3_validation_df['Total Monthly Expenditure (INR)']
-        X3_validation_df['Current_Investment_Allocation_Rate'] = X3_validation_df['Other Important Investments (INR)'] / X3_validation_df['Monthly Income (INR)']
-        X3_validation_df['Current_Crisis_Allocation_Rate'] = X3_validation_df['Crisis Shock Expenditure (INR)'] / X3_validation_df['Monthly Income (INR)']
+        _income = X3_validation_df['Monthly Income (INR)'].iloc[0]
+        _total_exp = X3_validation_df['Total Monthly Expenditure (INR)'].iloc[0]
+
+        X3_validation_df['Savings_Margin_Ratio'] = (
+            (_income - _total_exp) / _income if _income > 0 else 0.0
+        )
+        X3_validation_df['Essential_Cost_Ratio'] = (
+            X3_validation_df['Cost of Living Expenditure (INR)'].iloc[0] / _total_exp
+            if _total_exp > 0 else 0.0
+        )
+        X3_validation_df['Current_Investment_Allocation_Rate'] = (
+            X3_validation_df['Other Important Investments (INR)'].iloc[0] / _income
+            if _income > 0 else 0.0
+        )
+        X3_validation_df['Current_Crisis_Allocation_Rate'] = (
+            X3_validation_df['Crisis Shock Expenditure (INR)'].iloc[0] / _income
+            if _income > 0 else 0.0
+        )
+
+        # Safety: replace any remaining inf/NaN with 0 before scaling
+        X3_validation_df.replace([np.inf, -np.inf], 0.0, inplace=True)
+        X3_validation_df.fillna(0.0, inplace=True)
 
         X3_transformed_val = numeric_transformer_X3.transform(X3_validation_df)
 
