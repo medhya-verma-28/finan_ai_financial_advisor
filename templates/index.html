@@ -8,18 +8,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prata&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
 <body>
     <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
-    // TODO: Add SDKs for Firebase products that you want to use
-    // https://firebase.google.com/docs/web/setup#available-libraries
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
+            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, writeBatch }
+            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 
-    // Your web app's Firebase configuration
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-    const firebaseConfig = {
+        const firebaseConfig = {
         apiKey: "AIzaSyDZ4_sYvuZ4GMH6JKfYE2s-aHsGjEtXavg",
         authDomain: "finan-ai-financial-advisor.firebaseapp.com",
         projectId: "finan-ai-financial-advisor",
@@ -27,12 +26,49 @@
         messagingSenderId: "350704814578",
         appId: "1:350704814578:web:eb093f1d16f9d11303836b",
         measurementId: "G-175RVE57NC"
-    };
+        };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+        const db = getFirestore(app);
+
+        // Expose to global scope for button handlers
+        window._fbAuth = auth;
+        window._fbProvider = provider;
+        window._fbSignOut = signOut;
+        window._db = db;
+        window._fsCollection = collection;
+        window._fsAddDoc = addDoc;
+        window._fsGetDocs = getDocs;
+        window._fsDeleteDoc = deleteDoc;
+        window._fsDoc = doc;
+        window._fsQuery = query;
+        window._fsOrderBy = orderBy;
+        window._fsWriteBatch = writeBatch;
+
+        onAuthStateChanged(auth, (user) => {
+            const signInBtn = document.getElementById('homeSignInBtn');
+            if (user) {
+                window._currentUser = user;
+                document.getElementById('homeScreen').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+                document.getElementById('sidebarAvatar').src = user.photoURL || '';
+                document.getElementById('topbarAvatar').src = user.photoURL || '';
+                document.getElementById('sidebarName').textContent = user.displayName || '';
+                document.getElementById('sidebarEmail').textContent = user.email || '';
+                if (signInBtn) signInBtn.style.display = 'none';
+                loadRecentChats();
+            } else {
+                window._currentUser = null;
+                document.getElementById('homeScreen').classList.remove('hidden');
+                document.getElementById('dashboard').classList.add('hidden');
+                if (signInBtn) signInBtn.style.display = 'flex';
+            }
+        });
     </script>
+
+    <script src="/app.js"></script>
     <!-- Falling ₹ background -->
     <div id="rupeeFall" aria-hidden="true"></div>
 
@@ -167,63 +203,5 @@
             </div>
         </div>
     </div>
-
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut }
-            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
-        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, writeBatch }
-            from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
-
-        const firebaseConfig = {
-            apiKey: "{{ firebase_api_key }}",
-            authDomain: "{{ firebase_project_id }}.firebaseapp.com",
-            projectId: "{{ firebase_project_id }}",
-            storageBucket: "{{ firebase_project_id }}.firebasestorage.app",
-            appId: "{{ firebase_app_id }}",
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-        const db = getFirestore(app);
-
-        // Expose to global scope for button handlers
-        window._fbAuth = auth;
-        window._fbProvider = provider;
-        window._fbSignOut = signOut;
-        window._db = db;
-        window._fsCollection = collection;
-        window._fsAddDoc = addDoc;
-        window._fsGetDocs = getDocs;
-        window._fsDeleteDoc = deleteDoc;
-        window._fsDoc = doc;
-        window._fsQuery = query;
-        window._fsOrderBy = orderBy;
-        window._fsWriteBatch = writeBatch;
-
-        onAuthStateChanged(auth, (user) => {
-            const signInBtn = document.getElementById('homeSignInBtn');
-            if (user) {
-                window._currentUser = user;
-                document.getElementById('homeScreen').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('sidebarAvatar').src = user.photoURL || '';
-                document.getElementById('topbarAvatar').src = user.photoURL || '';
-                document.getElementById('sidebarName').textContent = user.displayName || '';
-                document.getElementById('sidebarEmail').textContent = user.email || '';
-                if (signInBtn) signInBtn.style.display = 'none';
-                loadRecentChats();
-            } else {
-                window._currentUser = null;
-                document.getElementById('homeScreen').classList.remove('hidden');
-                document.getElementById('dashboard').classList.add('hidden');
-                if (signInBtn) signInBtn.style.display = 'flex';
-            }
-        });
-    </script>
-
-    <script src="/app.js"></script>
 </body>
 </html>
