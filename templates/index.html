@@ -15,7 +15,12 @@
 
     <!-- Fixed top-right Sign In button (shown only when logged out) -->
     <button id="homeSignInBtn" class="home-signin-top" onclick="signInGoogle()">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.[...]
+    <svg width="16" height="16" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20c11.045 0 20-8.955 20-20 0-1.341-.138-2.65-.389-3.917z" />
+    <path fill="#FF3D00" d="m6.306 14.694 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.694z" />
+    <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.422-5.192l-6.239-5.277C29.091 34.718 26.646 36 24 36c-5.223 0-9.654-3.343-11.231-8.016l-6.53 5.03C9.626 39.539 16.226 44 24 44z" />
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.239 5.277C41.132 35.158 44 30.134 44 24c0-1.341-.138-2.65-.389-3.917z" />
+    </svg>
         Sign In
     </button>
 
@@ -43,11 +48,12 @@
                     <div class="msg finan-msg">
                         <span class="msg-avatar">F₹</span>
                         <div class="msg-bubble">
-                            Hello! I'm <strong>Finan</strong>, your AI financial advisor built for India. Tell me about your income, expenses and debt — I'll give you personalised advice.<br><br[...]
+                            Hello! I'm <strong>Finan</strong>, your AI financial advisor built for India. Tell me about your income, expenses and debt — I'll give you personalised advice.<br><br>
                             <em>Sign in with Google to save your budgets and chat history.</em>
                             <br>
                             <button class="example-prompt-btn" onclick="fillExample()">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" [...]Try an example prompt
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                                Try an example prompt
                             </button>
                         </div>
                     </div>
@@ -55,7 +61,8 @@
                 <div class="chat-input-row">
                     <textarea id="guestInput" placeholder="Describe your financial situation… e.g. I earn ₹80,000/month in Mumbai, rent is ₹22,000…" rows="2"></textarea>
                     <button id="guestSendBtn" onclick="guestSend()">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2=[...]
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="22" y2="22"/>
+                        </svg>
                     </button>
                 </div>
             </section>
@@ -69,7 +76,7 @@
         <aside id="sidebar">
             <div class="sidebar-logo">F₹nan</div>
             <button class="sidebar-btn active" id="newChatBtn" onclick="startNewChat()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2=[...]
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 New Chat
             </button>
 
@@ -81,8 +88,9 @@
 
             <div class="sidebar-section-label">Saved Budgets</div>
             <button class="sidebar-btn" onclick="showBudgets()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" hei[...]
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2" ry="2"/><line x1="16" y1="3" x2="16" y2="21"/><line x1="8" y1="12" x2="16" y2="12"/>
                 My Saved Budgets
+                </svg>
             </button>
 
             <div class="sidebar-spacer"></div>
@@ -95,7 +103,7 @@
                 </div>
             </div>
             <button class="sidebar-btn signout-btn" onclick="signOutUser()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a[...]
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
                 Sign Out
             </button>
         </aside>
@@ -104,7 +112,7 @@
         <div class="dash-main">
             <div class="dash-topbar">
                 <button class="hamburger" onclick="toggleSidebar()">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/>[...]
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
                 <span class="dash-title">F₹nan AI</span>
                 <img id="topbarAvatar" src="" alt="" class="avatar-img small">
@@ -126,8 +134,9 @@
                     <h3>My Saved Budgets</h3>
                     <div class="budget-panel-actions">
                         <button class="budget-action-btn" onclick="exportBudgetsCSV()" title="Download as CSV">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2[...]
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                             Export CSV
+                        </svg>
                         </button>
                         <button class="budget-action-btn danger" onclick="clearAllBudgets()" title="Delete all budgets">Clear all</button>
                         <button onclick="closeBudgets()" style="background:transparent;border:none;color:var(--text-dim);font-size:1.1rem;cursor:pointer;">✕</button>
@@ -139,7 +148,7 @@
             <div class="chat-input-row dash-input">
                 <textarea id="dashInput" placeholder="Ask Finan about your finances…" rows="2"></textarea>
                 <button id="dashSendBtn" onclick="dashSend()">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11[...]
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                 </button>
             </div>
         </div>
