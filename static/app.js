@@ -16,7 +16,7 @@
 })();
 
 /* ===== HELPERS ===== */
-const EXAMPLE_QUERY = `I run a small digital marketing agency in Hyderabad. My average monthly net income is ₹1,85,000. My core cost of living (rent, utilities, fuel, groceries) is ₹52,000. I [...]`;
+const EXAMPLE_QUERY = `I run a boutique fashion label in Mumbai, generating an average monthly net income of ₹4,20,000. My core personal cost of living, including apartment rent, utilities, transport, and household groceries, totals ₹1,20,000. I invest ₹85,000 monthly in premium design software, fabric sourcing platforms, and local fashion networking events. My discretionary spending on high-end trends, client dinners, and personal luxury shopping is around ₹70,000. I also fully sponsor my mother's medical treatments and insurance, which costs ₹60,000/month. My total monthly expenditure stands at ₹3,35,000, and I have zero debt. Is my current lifestyle and business spending sustainable given that fashion retail revenue is highly seasonal and fluctuates?`;
 
 function fc(val) {
     return '₹' + Number(val).toLocaleString('en-IN', { maximumFractionDigits: 2 });
