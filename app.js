@@ -181,7 +181,7 @@ function buildResultNode(data, showSaveBtn) {
     if (showSaveBtn && window._currentUser) {
         const btn = document.createElement('button');
         btn.className = 'save-budget-btn';
-        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"[...]
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path></svg>`;
         btn.onclick = () => saveBudget(data, btn);
         frag.appendChild(btn);
     }
@@ -389,7 +389,7 @@ window.saveBudget = async function (data, btn) {
         btn.textContent = '✓ Saved!';
         btn.disabled = true;
         setTimeout(() => {
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2[...]
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path></svg>`;
             btn.disabled = false;
         }, 2000);
     } catch (e) { console.error('saveBudget:', e); }
