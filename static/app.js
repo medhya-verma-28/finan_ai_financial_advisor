@@ -67,9 +67,29 @@ window.signOutUser = async function () {
     document.getElementById('recentChatsList').innerHTML = '';
 };
 
+// Your existing window function updated to manage the 'active' state
 window.toggleSidebar = function () {
-    document.getElementById('sidebar').classList.toggle('open');
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('active');
+    }
 };
+
+// Global click listener to close the sidebar when clicking outside
+document.addEventListener('click', function (event) {
+    const sidebar = document.getElementById('sidebar');
+    const menuButton = document.getElementById('menuButton');
+
+    // Only run if the sidebar exists and currently has the 'active' class
+    if (sidebar && sidebar.classList.contains('active')) {
+        
+        // If the click did NOT happen inside the sidebar AND NOT inside the menu button
+        if (!sidebar.contains(event.target) && !menuButton.contains(event.target)) {
+            sidebar.classList.remove('active');
+        }
+    }
+});
+
 
 /* ===== CHAT HELPERS ===== */
 function appendMsg(containerId, role, content) {
